@@ -14,7 +14,7 @@ type Session struct {
 	codec     Codec
 	sendCh    chan interface{}
 	closeFlag int32
-	lock      sync.Mutex
+	lock      *sync.Mutex
 }
 
 func (s *Session) IsClose() bool {
@@ -29,20 +29,22 @@ func (s *Session) Receive() (msg interface{}, err error) {
 }
 
 func (s *Session) Send(msg interface{}) error {
+	if s.IsClose() {
+		return nil
+	}
 	s.sendCh <- msg
 	return nil
 }
 
 func (s *Session) SendLoop() {
+	defer s.Close()
 	for {
 		select {
 		case msg, ok := <-s.sendCh:
 			if !ok || s.IsClose() {
 				return
 			}
-			s.lock.Lock()
 			err := s.codec.Send(msg)
-			s.lock.Unlock()
 			if err != nil {
 				s.Close()
 			}
@@ -67,11 +69,14 @@ type SessionManger struct {
 	sessions map[string]*Session
 }
 
-func (mgr *SessionManger) NewSession(codec Codec) *Session {
+func (mgr *SessionManger) NewSession(id string, codec Codec) *Session {
 	s := &Session{
+		Id:     id,
+		lock:   &sync.Mutex{},
 		codec:  codec,
-		sendCh: make(chan interface{}),
+		sendCh: make(chan interface{}, 1024),
 	}
+	mgr.sessions[s.Id] = s
 	go s.SendLoop()
 	return s
 }

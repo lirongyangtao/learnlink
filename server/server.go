@@ -42,7 +42,7 @@ func (server *Server) Run() {
 			if err != nil {
 				codec.Close()
 			}
-			session := server.mgr.NewSession(codec)
+			session := server.mgr.NewSession("", codec)
 			server.handler.HandleSession(session)
 		}()
 	}

@@ -1,11 +1,12 @@
 package main
 
 import (
+	"log"
+
 	"github.com/funny/link"
 	linkCodec "github.com/funny/link/codec"
 	"learnlink/server"
 	"learnlink/server/codec"
-	"log"
 )
 
 type AddReq struct {
